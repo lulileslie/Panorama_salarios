@@ -1,0 +1,69 @@
+---
+title: "Salários"
+author: "Carolina Leslie"
+date: "4/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+```
+
+```{r dados, include=FALSE}
+dados = read_csv(here("Dados/PanoramaUX2021.csv"),
+                 col_types = cols(
+  DesafioTexto = col_character(),
+  ImpactoPandemia = col_character(),
+  ManterTexto = col_character(),
+  OndeTrabalhaSimples = col_factor(),
+  TimeDivisao = col_character(),
+  ContratoOrig = col_character(),
+  ContratoSimples = col_character(),
+  Salario = col_double(),
+  salario2019 = col_double(),
+  `Escolaridade?` = col_factor(),
+  AnosExperienciaUX = col_factor(c("Menos de 1", "De 1 a 3", "De 4 a 5", "De 6 a 10", "De 11 a 15", "Mais que 15"), ordered = TRUE),
+  Nivel = col_factor(c("Trabalho de forma independente ou como freelancer", "Pesquisador acadêmico", "Outro (especifique)","Estagiário(a)", "Trainee", "Júnior", "Pleno", "Sênior", "Líder técnico ou especialista",  "Coordenador/Lead", "Gerente/Head", "Diretor(a)", "C-level" ), ordered = TRUE),
+  Lideranca = col_character(),
+  Funcao = col_character(),
+  Genero = col_character(),
+  LGBTQ = col_character(),
+  Filhos = col_skip(),
+  FilhosSimples = col_character(),
+  Raca = col_character(),
+  deficiencia = col_skip(),
+  deficienciaSimples = col_character(),
+  Estado = col_character(),
+  Cidade = col_character(),
+  Idade = col_double(),
+  FaixaIdade = col_factor(c("18 - 23", "24 - 29", "30 - 35", "36 - 41", "42 - 47", "48 +"), ordered = TRUE)
+))
+```
+## Seu salário mudou em 2020?
+
+A pandemia teve um efeito devastador para muitos setores da economia. Quem trabalha em UX, ou com tecnologia de forma mais ampla, viu um efeito contrário no mercado de trabalho: pleno emprego e aumento das medianas salariais.  
+
+Nesta edição perguntamos aos participantes seus salários no momento da pesquisa e um ano antes. A grande maioria relatou um aumento de renda em 2020. Apenas 5% tiveram uma queda de salário no mesmo período (sem contar o efeito da inflação no período). 
+
+
+###Variação salarial entre novembro 2020 e novembro 2019
+
+```{r}
+
+
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
