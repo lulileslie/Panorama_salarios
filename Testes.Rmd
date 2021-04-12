@@ -1,0 +1,53 @@
+---
+title: "Untitled"
+author: "Carolina Leslie"
+date: "4/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+dadosHeatmap <- dados %>% 
+  filter(Nivel != "Trabalho de forma independente ou como freelancer", Nivel != "Pesquisador acadêmico", Nivel != "Outro (especifique)", Nivel != "Trainee") %>% 
+  group_by(AnosExperienciaUX)  %>% 
+  count(Nivel)
+
+
+
+```
+
+```{r}
+
+experienciaNivel <- ggplot(dados %>%
+                             filter(!is.na(AnosExperienciaUX)) %>%
+                             filter(Nivel != "Trabalho de forma independente ou como freelancer", Nivel != "Pesquisador acadêmico", Nivel != "Outro (especifique)", Nivel != "Trainee"),
+                           aes(x = AnosExperienciaUX, y= Nivel)) +
+  geom_jitter(fill = "#9d02d7") +
+  scale_fill_manual(values = c("#9d02d7")) + 
+  theme(axis.text = element_text(size = 11), legend.position = "none") +
+  labs(title="Experiência x Nível hierárquico", subtitle = " ") +
+  theme(panel.grid.major.x = element_line(color="#cbcbcb"), 
+        panel.grid.major.y=element_blank()) 
+
+experienciaNivel
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

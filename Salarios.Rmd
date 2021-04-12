@@ -53,7 +53,12 @@ Nesta edição perguntamos aos participantes seus salários no momento da pesqui
 
 ```{r}
 
-
+comparaAnos <- dados %>% 
+  select(Salario, salario2019) %>% 
+  rename("2020" = Salario,
+         "2019" = salario2019) %>% 
+  
+ 
 
 
 ```
