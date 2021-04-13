@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(here)
+library(ggdist)
 ```
 
 ```{r dados, include=FALSE}
@@ -42,6 +43,16 @@ dados = read_csv(here("Dados/PanoramaUX2021.csv"),
   FaixaIdade = col_factor(c("18 - 23", "24 - 29", "30 - 35", "36 - 41", "42 - 47", "48 +"), ordered = TRUE)
 ))
 ```
+
+```{r}
+
+Cores <- c("#ffd700","#ffb14e","#fa8775","#E05186","#cd34b5","#9d02d7","#0000ff", "#cccccc", "#ffd700","#ffb14e","#fa8775","#E05186","#cd34b5","#9d02d7","#0000ff", "#cccccc")
+Cores2 <- c("#E05186", "#9d02d7")
+Cores3 <- c("#ffb14e","#cd34b5","#0000ff")
+Cores4 <- c("#ffd700","#E05186","#9d02d7","#0000ff")
+```
+
+
 ## Seu salário mudou em 2020?
 
 A pandemia teve um efeito devastador para muitos setores da economia. Quem trabalha em UX, ou com tecnologia de forma mais ampla, viu um efeito contrário no mercado de trabalho: pleno emprego e aumento das medianas salariais.  
@@ -57,18 +68,83 @@ comparaAnos <- dados %>%
   select(Salario, salario2019) %>% 
   rename("2020" = Salario,
          "2019" = salario2019) %>% 
-  
- 
-
-
+  gather("ano","Salário", 1:2) %>% 
+  filter(!is.na(Salário)) %>% 
+  filter(Salário > 0) %>% 
+  group_by(ano) %>% 
+  mutate(
+    median = median(Salário),
+    q25 = quantile(Salário, probs = .25),
+    q75 = quantile(Salário, probs = .75),
+    mean = mean(Salário),
+    n = n()
+  ) %>% 
+  ungroup()
 ```
+
+```{r}
+SalariosAnos <- ggplot(comparaAnos, aes(x = ano, y = Salário, fill = ano, color = ano)) + 
+  stat_slab(alpha = 0.5) +
+  scale_x_discrete (name = NULL) +
+  theme_minimal() +
+  scale_fill_manual(values = Cores2) +
+  scale_color_manual(values = Cores2) +
+  theme(legend.position = "none", 
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 12),
+        plot.title = element_text(size = 21)) +
+  scale_y_continuous(
+    name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000),
+    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000", "35.000", "40000")) +
+  annotate ("text", x = 1.1 , y = 2019, label =  "R$ 8.000", color = "black")+
+  annotate ("text", x = 2.1, y = 2020, label = "R$ 7.000", color = "black") +
+  coord_flip() +
+  labs(title = "Distribuição de salários em 2019 e 2020") +
+  #geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+   #             ymin = Q25F, ymax = medianaFem), 
+   #         fill = "grey89", alpha = 0.8, linetype = 0) +
+  #geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+    #            ymin = Q75F, ymax = medianaFem), 
+    #        fill = "grey79", alpha = 0.8, linetype = 0) +
+ # geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+    #            ymin = Q25M, ymax = medianaMasc), 
+    #        fill = "grey89", alpha = 0.8, linetype = 0) +
+  #geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+        #        ymin = Q75M, ymax = medianaMasc), 
+        #    fill = "grey79", alpha = 0.8, linetype = 0) +
+  # geom_segment(aes(y = minimo, 
+   #           yend = maximo,
+    #          x = ano,
+    #          xend = ano,
+   #           color = ano),
+   #           size = .5) +
+  geom_point(aes(x = ano, y = Salário), pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  geom_point(aes(x = 1, y = 8000), 
+               color = "black", 
+               shape = 18, 
+               size = 4) +
+  geom_point(aes(x = 2, y = 6200), 
+               color = "black", 
+               shape = 18, 
+               size = 4) 
+ # annotate ("text", x = 2.1 , y = 28500, label =  "n = 865", color = Cores2[1]) +
+ # annotate ("text", x = 1.1 , y = 33500, label =  "n = 780", color = Cores2[2])
+  
+
+  
+SalariosAnos
+
+ggsave("SalariosAnos.png", SalariosAnos)
+```
+
 
 ## Including Plots
 
 You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
