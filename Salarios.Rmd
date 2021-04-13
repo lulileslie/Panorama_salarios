@@ -8,9 +8,13 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+install.packages("plotrix")
+
 library(tidyverse)
 library(here)
 library(ggdist)
+library("bbplot")
+library(plotrix)
 ```
 
 ```{r dados, include=FALSE}
@@ -42,6 +46,10 @@ dados = read_csv(here("Dados/PanoramaUX2021.csv"),
   Idade = col_double(),
   FaixaIdade = col_factor(c("18 - 23", "24 - 29", "30 - 35", "36 - 41", "42 - 47", "48 +"), ordered = TRUE)
 ))
+
+dados <- dados %>% 
+  filter(Estado != "Não moro no Brasil") %>% 
+  filter(ContratoSimples != "Não estou trabalhando no momento")
 ```
 
 ```{r}
@@ -77,49 +85,270 @@ comparaAnos <- dados %>%
     q25 = quantile(Salário, probs = .25),
     q75 = quantile(Salário, probs = .75),
     mean = mean(Salário),
-    n = n()
-  ) %>% 
-  ungroup()
+    n = n(),
+    Ano_num = ifelse(ano == 2020, 2, ifelse(ano==2019, 1, NA))) %>% 
+  ungroup() 
+    
+  
+
 ```
+
+Versão 1 - antiga
 
 ```{r}
 SalariosAnos <- ggplot(comparaAnos, aes(x = ano, y = Salário, fill = ano, color = ano)) + 
   stat_slab(alpha = 0.5) +
   scale_x_discrete (name = NULL) +
-  theme_minimal() +
   scale_fill_manual(values = Cores2) +
   scale_color_manual(values = Cores2) +
-  theme(legend.position = "none", 
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 12),
         axis.title.x = element_text(color = "grey30", 
                                   margin = margin(t = 7), 
                                   size = 12),
-        plot.title = element_text(size = 21)) +
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
   scale_y_continuous(
     name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000),
-    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000", "35.000", "40000")) +
-  annotate ("text", x = 1.1 , y = 2019, label =  "R$ 8.000", color = "black")+
-  annotate ("text", x = 2.1, y = 2020, label = "R$ 7.000", color = "black") +
+    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000", "35.000", "40.000")) +
+  annotate ("text", x = 1.1 , y = 5700, label =  "R$ 5.700", color = "black")+
+  annotate ("text", x = 2.1, y = 7000, label = "R$ 7.000", color = "black") +
   coord_flip() +
   labs(title = "Distribuição de salários em 2019 e 2020") +
-  #geom_rect(aes(xmin = 1.88, xmax = 1.98, 
-   #             ymin = Q25F, ymax = medianaFem), 
-   #         fill = "grey89", alpha = 0.8, linetype = 0) +
-  #geom_rect(aes(xmin = 1.88, xmax = 1.98, 
-    #            ymin = Q75F, ymax = medianaFem), 
-    #        fill = "grey79", alpha = 0.8, linetype = 0) +
- # geom_rect(aes(xmin = 0.88, xmax = 0.98, 
-    #            ymin = Q25M, ymax = medianaMasc), 
-    #        fill = "grey89", alpha = 0.8, linetype = 0) +
-  #geom_rect(aes(xmin = 0.88, xmax = 0.98, 
-        #        ymin = Q75M, ymax = medianaMasc), 
-        #    fill = "grey79", alpha = 0.8, linetype = 0) +
-  # geom_segment(aes(y = minimo, 
-   #           yend = maximo,
-    #          x = ano,
-    #          xend = ano,
-   #           color = ano),
-   #           size = .5) +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = 4500, ymax = 7000), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = 10000, ymax = 7000), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = 3500, ymax = 5700), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = 8500, ymax = 5700), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
   geom_point(aes(x = ano, y = Salário), pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  annotate ("text", x = 2.1 , y = 32500, label =  "n = 1671", color = Cores2[2]) +
+  annotate ("text", x = 1.1 , y = 35500, label =  "n = 1611", color = Cores2[1]) +
+  geom_segment(aes(y = 400, yend = 40000, x = 1, xend = 1), size = .5, color = Cores2[1]) +
+  geom_segment(aes(y = 600, yend = 35000, x = 2, xend = 2), size = .5, color = Cores2[2]) +
+  geom_point(aes(x = 1, y = 5700), 
+               color = "black", 
+               shape = 18, 
+               size = 4) +
+  geom_point(aes(x = 2, y = 7000), 
+               color = "black", 
+               shape = 18, 
+               size = 4) 
+
+finalise_plot(plot_name = SalariosAnos,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/SalariosAnos.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
+
+
+```
+Versão 2 - valendo
+```{r}
+SalariosAnos <- ggplot(comparaAnos, aes(x = Ano_num, y = Salário, fill = ano, color = ano)) + 
+  stat_slab(alpha = 0.5) +
+  scale_x_continuous (name = NULL, breaks = c(2, 1), labels = c("2020", "2019")) +
+  scale_fill_manual(values = Cores2) +
+  scale_color_manual(values = Cores2) +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_y_continuous(
+    name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000),
+    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000", "35.000", "40.000")) +
+  annotate ("text", x = 1.1 , y = 5700, label =  "R$ 5.700", color = "black")+
+  annotate ("text", x = 2.1, y = 7000, label = "R$ 7.000", color = "black") +
+  coord_flip() +
+  labs(title = "Distribuição de salários em 2019 e 2020") +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = 4500, ymax = 7000), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = 10000, ymax = 7000), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = 3500, ymax = 5700), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = 8500, ymax = 5700), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+  geom_point(aes(x = Ano_num, y = Salário), pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  annotate ("text", x = 2.1 , y = 32500, label =  "n = 1671", color = Cores2[2]) +
+  annotate ("text", x = 1.1 , y = 37500, label =  "n = 1611", color = Cores2[1]) +
+  geom_segment(aes(y = 400, yend = 40000, x = 1, xend = 1), size = .5, color = Cores2[1]) +
+  geom_segment(aes(y = 600, yend = 35000, x = 2, xend = 2), size = .5, color = Cores2[2]) +
+  geom_point(aes(x = 1, y = 5700), 
+               color = "black", 
+               shape = 18, 
+               size = 4) +
+  geom_point(aes(x = 2, y = 7000), 
+               color = "black", 
+               shape = 18, 
+               size = 4) 
+  
+finalise_plot(plot_name = SalariosAnos,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/SalariosAnos.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
+
+```
+Reflexo inflação 
+```{r}
+SalarioInfla2019 <- dados %>%
+  filter(Genero != "Outro ou não binário") %>%
+  filter(Genero != "Prefiro não dizer") %>%
+  filter(salario2019 >0) %>% 
+  mutate(AjusteInflacao2019 = salario2019 + salario2019 * 0.0484) %>% 
+  filter(!is.na(AjusteInflacao2019))  %>%
+  select("Salario", "ContratoSimples", "Genero", "LGBTQ", "AjusteInflacao2019")
+
+
+
+PlotSalariosInfla19 <- ggplot(SalarioInfla2019, aes(x = AjusteInflacao2019, fill =  "#0000ff", color = "#0000ff")) + stat_slab(alpha = 0.5) +
+  scale_fill_manual(values = "#cd34b5") +
+  scale_color_manual(values = "#cd34b5") +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_x_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000),
+                    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000", "35.000", "40.000")) +
+  scale_y_continuous (breaks = NULL, name = NULL) +
+  annotate ("text", x = 5975, y = 0.06, label = "R$ 5.975", color = "black") +
+  geom_rect(aes(xmin = quantile(AjusteInflacao2019, probs = .25), xmax = median(AjusteInflacao2019), 
+                ymin = -0.09, ymax = -0.01), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = quantile(AjusteInflacao2019, probs = .75), xmax = median(AjusteInflacao2019), 
+                ymin = -0.09, ymax = -0.01), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+  geom_point(aes(x = AjusteInflacao2019, y = -0.05), 
+             pch = "|", 
+             size = 2, 
+             position = position_nudge(x = -0.055))+
+  geom_segment(aes(x = min(AjusteInflacao2019), 
+              xend = max(AjusteInflacao2019),
+              y = 0,
+              yend = 0),
+          #    color = "#E05186"),
+              size = .5) +
+  geom_point(aes(x = median(AjusteInflacao2019), y = 0), 
+               color = "black", 
+               shape = 18, 
+               size = 4) +
+  labs(title = "Salários 2019", subtitle = "Corrigido pela inflação de 4,94% no período") 
+ # annotate ("text", x = 38000, y = 0.06, label = "n = 1672", color = "#cd34b5") 
+
+finalise_plot(plot_name = PlotSalariosInfla19,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/SalarioInfla2019.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
+
+
+```
+```{r}
+SalarioGenTeste <- dados %>% 
+  group_by(Genero) %>%
+  filter(Genero != "Outro ou não binário", Genero != "Prefiro não dizer") %>% 
+  filter(!is.na(Salario)) %>% 
+  mutate(
+    median = median(Salario),
+    q25 = quantile(Salario, probs = .25),
+    q75 = quantile(Salario, probs = .75),
+    num = n(),
+    minimo = min(Salario),
+    maximo = max(Salario)
+  ) %>% 
+  ungroup() %>% 
+  mutate(Sexo_num = as.numeric(fct_rev(Genero))) 
+
+df_rect <-
+  tibble(
+    xmin = c(-Inf, 2.46, 3.27),
+    xmax = c(Inf, Inf, Inf),
+    ymin = c(3, 2, 1),
+    ymax = c(Inf, Inf, Inf)
+  )
+SalarioGenTeste
+```
+
+```{r}
+
+medianaFem <- 6200
+medianaMasc <- 8000
+Q25F <- 4100
+Q25M <- 5100
+Q75F <- 9000
+Q75M <- 11000
+totais <- c(864,783)
+
+
+SalariosGenero <- ggplot(SalarioGenTeste, aes(x = Sexo_num, y = Salario, fill = Genero, color = Genero))+
+  stat_slab(alpha = 0.5) +
+  scale_x_continuous (name = NULL, breaks = c(1, 2), labels = c("Masculino", "Feminino")) +
+  scale_fill_manual(values = Cores2) +
+  scale_color_manual(values = Cores2) +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_y_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000),
+                    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000")) +
+  annotate ("text", x = 1.1 , y = medianaMasc, label =  "R$ 8.000", color = "black")+
+  annotate ("text", x = 2.1, y = medianaFem, label = "R$ 6.200", color = "black") +
+  coord_flip() +
+  labs(title = "Distribuição de salários por gênero") +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = Q25F, ymax = medianaFem), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = Q75F, ymax = medianaFem), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = Q25M, ymax = medianaMasc), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = Q75M, ymax = medianaMasc), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+   geom_segment(aes(y = minimo, 
+              yend = maximo,
+              x = Sexo_num,
+              xend = Sexo_num,
+              color = Genero),
+              size = .5) +
+  geom_point(aes(x = Sexo_num, y = Salario), pch = "|", size = 2, position = position_nudge(x = -0.06)) +
   geom_point(aes(x = 1, y = 8000), 
                color = "black", 
                shape = 18, 
@@ -127,24 +356,108 @@ SalariosAnos <- ggplot(comparaAnos, aes(x = ano, y = Salário, fill = ano, color
   geom_point(aes(x = 2, y = 6200), 
                color = "black", 
                shape = 18, 
-               size = 4) 
- # annotate ("text", x = 2.1 , y = 28500, label =  "n = 865", color = Cores2[1]) +
- # annotate ("text", x = 1.1 , y = 33500, label =  "n = 780", color = Cores2[2])
+               size = 4) +
+  annotate ("text", x = 2.1 , y = 28500, label =  "n = 864", color = Cores2[1]) +
+  annotate ("text", x = 1.1 , y = 33500, label =  "n = 783", color = Cores2[2])
   
 
+finalise_plot(plot_name = SalariosGenero,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/SalariosGenero.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
+
   
-SalariosAnos
+```
+LGBT
 
-ggsave("SalariosAnos.png", SalariosAnos)
+```{r}
+SalarioLGBT <- SalarioGenTeste %>% 
+  filter(Salario > 0) %>% 
+  group_by(LGBTQ) %>% 
+  mutate(
+    medianS = median(Salario),
+    q25S = quantile(Salario, probs = .25),
+    q75S = quantile(Salario, probs = .75),
+    n = n(),
+    minimo = min(Salario),
+    maximo = max(Salario)
+  ) %>% 
+  ungroup() %>% 
+  mutate(LGBT_num = as.numeric(fct_rev(LGBTQ))) 
+
+SalarioLGBT
+
+MedianLGBTQ <- 6400
+MedianNao <- 7300
+Q25lg <- 4022
+Q25Nl <- 4643
+Q75lg <- 8800
+Q75Nl <- 10000
+
 ```
 
+```{r}
 
-## Including Plots
+SalariosLGBT <- ggplot(SalarioLGBT, aes(x = LGBT_num, y = Salario, fill = LGBTQ, color = LGBTQ)) + 
+  stat_slab(alpha = 0.5) +
+  scale_fill_manual(values = Cores2) +
+  scale_color_manual(values = Cores2) +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_y_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000),
+                    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000")) +
+  scale_x_continuous (name = NULL, breaks = c(1, 2), labels = c("Não LGBTQ+", "LGBTQ+")) +
+  annotate ("text", x = 2.1, y = MedianLGBTQ, label = "R$ 6.400" , color = "black")+
+  annotate ("text", x = 1.1, y = MedianNao , label = "R$ 7.300" , color = "black") +
+  coord_flip() +
+  labs(title = "Distribuição de salários",
+       subtitle = "Você se identifica como LGBTQ+?") +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = Q25Nl, ymax = MedianNao), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = Q75Nl, ymax = MedianNao), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+    geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = Q25lg, ymax = MedianLGBTQ), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = Q75lg, ymax = MedianLGBTQ), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+  geom_segment(aes(y = minimo, 
+              yend = maximo,
+              x = LGBT_num,
+              xend = LGBT_num,
+              color = LGBTQ),
+              size = .5) +
+  geom_point(aes(x = LGBT_num, y = Salario), pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  geom_point(aes(x = 1, y = 7300), 
+               color = "black", 
+               shape = 18, 
+               size = 4) +
+  geom_point(aes(x = 2, y = 6400), 
+               color = "black", 
+               shape = 18, 
+               size = 4)+
+  annotate ("text", x = 1.1 , y = 28500, label =  "n = 395", color = Cores2[2]) +
+  annotate ("text", x = 2.1 , y = 33500, label =  "n = 1250", color = Cores2[1])
 
-You can also embed plots, for example:
+  finalise_plot(plot_name = SalariosLGBT,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/SalariosLGBT.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
 
-```{r pressure, echo=FALSE}
 
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

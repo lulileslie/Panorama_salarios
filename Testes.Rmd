@@ -46,8 +46,21 @@ experienciaNivel
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+slopeAnos <- dados %>% 
+  select(Salario, salario2019) %>% 
+   filter(!is.na(Salario), !is.na(salario2019)) %>% 
+   mutate(diferenca = Salario - salario2019) %>% 
+   filter(Salario > 0, salario2019 >0) %>% 
+  rename("2020" = Salario,
+         "2019" = salario2019)  %>%
+  gather("ano","Salário", 1:2) 
+
+  graficoslope <- ggplot(comparaAnos, aes(x=ano, y=Salário)) +
+    geom_segment(xend = , yend = , color = "gray70")+
+    geom_point()
+
+  
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
