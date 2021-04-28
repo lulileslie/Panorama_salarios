@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
 ## R Markdown
@@ -52,13 +53,11 @@ slopeAnos <- dados %>%
    filter(!is.na(Salario), !is.na(salario2019)) %>% 
    mutate(diferenca = Salario - salario2019) %>% 
    filter(Salario > 0, salario2019 >0) %>% 
-  rename("2020" = Salario,
-         "2019" = salario2019)  %>%
-  gather("ano","Salário", 1:2) 
+  rename("Ano_2020" = Salario,
+         "Ano_2019" = salario2019)  
 
-  graficoslope <- ggplot(comparaAnos, aes(x=ano, y=Salário)) +
-    geom_segment(xend = , yend = , color = "gray70")+
-    geom_point()
+  graficoslope <- ggplot(slopeAnos) +
+    geom_segment(slopeAnos, x = 2019,xend = 2020 , y= Ano_2019 ,  yend = Ano_2020 , color = "gray70")
 
   
 ```

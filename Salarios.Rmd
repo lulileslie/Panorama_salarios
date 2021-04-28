@@ -8,13 +8,18 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-install.packages("plotrix")
+#install.packages("plotrix")
+#install.packages("skimr")
+#devtools::install_github('davidgohel/ggiraph')
 
 library(tidyverse)
 library(here)
 library(ggdist)
-library("bbplot")
+library(bbplot)
 library(plotrix)
+library(ggiraph)
+library(skimr)
+
 ```
 
 ```{r dados, include=FALSE}
@@ -49,16 +54,28 @@ dados = read_csv(here("Dados/PanoramaUX2021.csv"),
 
 dados <- dados %>% 
   filter(Estado != "Não moro no Brasil") %>% 
-  filter(ContratoSimples != "Não estou trabalhando no momento")
+  filter(ContratoSimples != "Não estou trabalhando no momento")  %>%
+  filter(!is.na(Salario)) %>%
+  filter(Salario > 0)
 ```
 
 ```{r}
 
-Cores <- c("#ffd700","#ffb14e","#fa8775","#E05186","#cd34b5","#9d02d7","#0000ff", "#cccccc", "#ffd700","#ffb14e","#fa8775","#E05186","#cd34b5","#9d02d7","#0000ff", "#cccccc")
+Cores <- c("#ffd700","#ffb14e","#fa8775","#E05186","#cd34b5","#9d02d7","#0000ff", "#511B75", "#ffd700","#ffb14e","#fa8775","#E05186","#cd34b5","#9d02d7","#0000ff", "#cccccc")
 Cores2 <- c("#E05186", "#9d02d7")
 Cores3 <- c("#ffb14e","#cd34b5","#0000ff")
 Cores4 <- c("#ffd700","#E05186","#9d02d7","#0000ff")
 ```
+
+## Exploração inicial
+
+```{r}
+dados %>% 
+  skim()
+```
+
+
+
 
 
 ## Seu salário mudou em 2020?
@@ -420,8 +437,7 @@ SalariosLGBT <- ggplot(SalarioLGBT, aes(x = LGBT_num, y = Salario, fill = LGBTQ,
   annotate ("text", x = 2.1, y = MedianLGBTQ, label = "R$ 6.400" , color = "black")+
   annotate ("text", x = 1.1, y = MedianNao , label = "R$ 7.300" , color = "black") +
   coord_flip() +
-  labs(title = "Distribuição de salários",
-       subtitle = "Você se identifica como LGBTQ+?") +
+  labs(title = "Distribuição de salários - LGBTQ+") +
   geom_rect(aes(xmin = 0.88, xmax = 0.98, 
                 ymin = Q25Nl, ymax = MedianNao), 
             fill = "grey89", alpha = 0.8, linetype = 0) +
@@ -460,4 +476,458 @@ height_pixels = 550,
 logo_image_path = "logo.png")
 
 
+```
+```{r}
+SalarioContrato <- dados %>% 
+  filter(ContratoSimples != "Outro") %>%
+  filter(ContratoSimples != "Sócio ou proprietário") %>%
+  filter(ContratoSimples != "Freelancer") %>%
+  filter(ContratoSimples != "Estagiário") %>% 
+  filter(Salario > 0) %>% 
+  select(ContratoSimples,Salario) %>% 
+  group_by(ContratoSimples) %>% 
+  mutate(
+    medianS = median(Salario),
+    q25S = quantile(Salario, probs = .25),
+    q75S = quantile(Salario, probs = .75),
+    n = n(),
+    minimo = min(Salario),
+    maximo = max(Salario)
+  ) %>% 
+  ungroup() %>% 
+  mutate(contrato_num = as.numeric(fct_rev(ContratoSimples))) 
+  
+SalarioContrato
+```
+```{r}
+Median1 <- 7200
+Median2 <- 7500
+Q251 <- 4808
+Q252 <- 4500
+Q751 <- 10000
+Q752 <- 11000
+
+SalarioContratoQuant <- ggplot(SalarioContrato, 
+       aes(x = contrato_num, y = Salario, fill = ContratoSimples, color = ContratoSimples)) + 
+  scale_fill_manual(values = Cores2) +
+  scale_color_manual(values = Cores2) +
+  stat_slab(alpha = 0.5) +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_y_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000),
+                    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000")) +
+  scale_x_continuous (name = NULL, breaks = c(1, 2), labels = c("PJ", "CLT")) +
+  annotate ("text", x = 1.1, y = Median2, label = "R$ 7.500" , color = "black")+
+  annotate ("text", x = 2.1, y = Median1 , label = "R$ 7.200" , color = "black") +
+  coord_flip() +
+  labs(title = "Distribuição de salários por forma de contratação") +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = Q251, ymax = Median1), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+                ymin = Q751, ymax = Median1), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+    geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = Q252, ymax = Median2), 
+            fill = "grey89", alpha = 0.8, linetype = 0) +
+  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+                ymin = Q752, ymax = Median2), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+  geom_segment(aes(y = minimo, 
+              yend = maximo,
+              x = contrato_num,
+              xend = contrato_num,
+              color = ContratoSimples),
+              size = .5) +
+  geom_point(aes(x = contrato_num, y = Salario, color = ContratoSimples), 
+             pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  geom_point(aes(x = contrato_num, y = medianS), 
+               color = "black", 
+               shape = 18, 
+               size = 4) +
+  annotate ("text", x = 1.1 , y = 28500, label =  "n = 209", color = Cores2[2]) +
+  annotate ("text", x = 2.1 , y = 33500, label =  "n = 1341", color = Cores2[1])
+
+finalise_plot(plot_name = SalarioContratoQuant,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/SalarioContratoQuant.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
+
+
+```
+
+```{r}
+SalarioRaca <- dados %>% 
+    filter(Raca != "Outro") %>%
+  filter(Raca != "Outro (Qual?)") %>%
+         filter(Raca != "Prefiro não dizer") %>%
+           filter(Raca != "Indígena") %>%
+  select(Raca, Genero, Salario) %>%
+    group_by(Raca) %>% 
+  mutate(
+    medianS = median(Salario),
+    q25S = quantile(Salario, probs = .25),
+    q75S = quantile(Salario, probs = .75),
+    n = n(),
+    minimo = min(Salario),
+    maximo = max(Salario),
+    Raca_num = ifelse(Raca == "Negro", 1, ifelse( 
+      Raca == "Branco", 2, ifelse (Raca == "Pardo", 3, 
+      ifelse(Raca=="Asiático", 4, NA))))) %>%
+  ungroup() 
+  
+SalarioRaca
+```
+
+```{r}
+Median4 <- 7800 # asiatico
+Median2 <- 7000 # branco
+Median1 <- 6000 # negro
+Median3 <-7100  # pardo
+Q251 <- 4817
+Q252 <- 4500
+Q751 <- 10000
+Q752 <- 11000
+
+GFSalarioRaca <- ggplot(SalarioRaca,
+       aes(x = reorder(Raca_num, medianS), y = Salario, fill = Raca, Color = Raca))  + 
+  scale_fill_manual(values = Cores) +
+  scale_color_manual(values = Cores) +
+  stat_slab(alpha = 0.5) +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_y_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000),
+                    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000")) +
+  scale_x_discrete (name = NULL, breaks = c(1, 2, 3, 4), labels = c("Negra", "Branca", "Parda", "Asiática")) +
+  annotate ("text", x = 1.2, y = Median1 , label = "R$ 6.000" , color = "black") +
+  annotate ("text", x = 2.2, y = Median2, label = "R$ 7.000" , color = "black")+
+  annotate ("text", x = 3.2, y = Median3, label = "R$ 7.100" , color = "black")+
+  annotate ("text", x = 4.2, y = Median4 , label = "R$ 7.800" , color = "black") +
+  coord_flip() +
+  labs(title = "Distribuição de salários",
+       subtitle = "Por raça") +
+  # geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+  #               ymin = Q251, ymax = Median1), 
+  #           fill = "grey89", alpha = 0.8, linetype = 0) +
+  # geom_rect(aes(xmin = 0.88, xmax = 0.98, 
+  #               ymin = Q751, ymax = Median1), 
+  #           fill = "grey79", alpha = 0.8, linetype = 0) +
+  #   geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+  #               ymin = Q252, ymax = Median2), 
+  #           fill = "grey89", alpha = 0.8, linetype = 0) +
+  # geom_rect(aes(xmin = 1.88, xmax = 1.98, 
+  #               ymin = Q752, ymax = Median2), 
+  #           fill = "grey79", alpha = 0.8, linetype = 0) +
+  geom_segment(aes(y = minimo, 
+              yend = maximo,
+              x = Raca_num,
+              xend = Raca_num,
+              color = Raca),
+              size = .5) +
+  geom_point(aes(x = Raca_num, y = Salario, color = Raca), 
+             pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  geom_point(aes(x = Raca_num, y = medianS), 
+               color = "black", 
+               shape = 18, 
+               size = 4) +
+  annotate ("text", x = 4.2 , y = 27000, label =  "n = 73", color = Cores[1]) +
+  annotate ("text", x = 3.2 , y = 21500, label =  "n = 227", color = Cores[4]) +
+annotate ("text", x = 2.2 , y = 33500, label =  "n = 1219", color = Cores[2]) +
+  annotate ("text", x = 1.2 , y = 22500, label =  "n = 118", color = Cores[3])
+
+finalise_plot(plot_name = GFSalarioRaca,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/GFSalarioRaca.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
+
+```
+
+```{r}
+SalarioFuncao <- dados %>% 
+    select(Funcao, Genero, Salario) %>% 
+    filter(Funcao != "Designer de interação") %>%
+    filter(Funcao != "Outro (especifique)") %>%
+    filter(Funcao != "Especialista em Usabilidade") %>%
+    filter(Funcao != "Arquiteto de Informação") %>%
+    filter(Funcao != "Analista de métricas / BI / Cientista de dados") %>%
+    filter(Funcao != "Operações em pesquisa (ResearchOps)") %>%
+    filter(Funcao != "Freelancer") %>%
+    filter(Funcao != "CX / Operações / Suporte") %>%
+    group_by(Funcao) %>% 
+  mutate(
+    medianS = median(Salario),
+    q25S = quantile(Salario, probs = .25),
+    q75S = quantile(Salario, probs = .75),
+    n = n(),
+    minimo = min(Salario),
+    maximo = max(Salario)
+  ) %>% 
+  ungroup() %>% 
+  mutate(Funcao_num = as.numeric(fct_rev(Funcao))) 
+
+  
+SalarioFuncao
+```
+```{r}
+Median1 <- 4000 # UI
+Median2 <- 5850 # redator
+Median3 <-6500  # UX
+Median4 <- 7200 # produto
+Median5 <- 7400 # pesquisa
+Median6 <- 9450 # ops 
+Median7 <-10000  # gp
+Median8 <- 11000 # estrategista
+
+
+GFSalarioFuncao <- ggplot(SalarioFuncao,
+       aes(x = reorder(Funcao, medianS), y = Salario, fill = Funcao, Color = Funcao))  + 
+  scale_fill_manual(values = Cores) +
+  scale_color_manual(values = Cores) +
+  stat_slab(alpha = 0.5) +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_y_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000),
+                    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000")) +
+  scale_x_discrete ( name = NULL, labels = c("UI designer", "Redator", "UX designer", "Designer de produto", "Pesquisador em design", "designOps", "Gerente de produto", "Estrategista de UX")) +
+  annotate ("text", x = 1.25, y = Median1 , label = "R$ 4.000" , color = "black", size = 3.5) +
+  annotate ("text", x = 2.25, y = Median2, label = "R$ 5.850" , color = "black", size = 3.5)+
+  annotate ("text", x = 3.25, y = Median3, label = "R$ 6.500" , color = "black", size = 3.5)+
+  annotate ("text", x = 4.25, y = Median4 , label = "R$ 7.200" , color = "black", size = 3.5) +
+  annotate ("text", x = 5.25, y = Median5 , label = "R$ 7.400" , color = "black", size = 3.5) +
+  annotate ("text", x = 6.25, y = Median6, label = "R$ 9.450" , color = "black", size = 3.5)+
+  annotate ("text", x = 7.25, y = Median7, label = "R$ 10.000" , color = "black", size = 3.5)+
+  annotate ("text", x = 8.25, y = Median8 , label = "R$ 11.000" , color = "black", size = 3.5) +
+  coord_flip() +
+  labs(title = "Distribuição de salários",
+       subtitle = "Por função") +
+  geom_segment(aes(y = minimo, 
+              yend = maximo,
+              x = Funcao,
+              xend = Funcao,
+              color = Funcao),
+              size = .5) +
+  geom_point(aes(x = Funcao, y = Salario, color = Funcao), 
+             pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  geom_point(aes(x = Funcao, y = medianS), 
+               color = "black", 
+               shape = 18, 
+               size = 3) +
+  annotate ("text", x = 8.2 , y = 30000, label =  "n = 119", color = Cores[2], size = 3.5) +
+  annotate ("text", x = 7.2 , y = 20000, label =  "n = 50", color = Cores[3], size = 3.5) +
+  annotate ("text", x = 6.2 , y = 21000, label =  "n = 44", color = Cores[4], size = 3.5) +
+  annotate ("text", x = 5.2 , y = 28500, label =  "n = 144", color = Cores[5], size = 3.5)+
+  annotate ("text", x = 4.2 , y = 33500, label =  "n = 624", color = Cores[1], size = 3.5) +
+  annotate ("text", x = 3.2 , y = 18000, label =  "n = 348", color = Cores[8], size = 3.5) +
+  annotate ("text", x = 2.2 , y = 16000, label =  "n = 60", color = Cores[6], size = 3.5) +
+  annotate ("text", x = 1.2 , y = 20000, label =  "n = 118", color = Cores[7], size = 3.5)
+
+finalise_plot(plot_name = GFSalarioFuncao,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/GFSalarioFuncao.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
+```
+```{r}
+EstadosEscolhidos <- c("São Paulo (SP)", "Rio de Janeiro (RJ)","Distrito Federal (DF)", "Paraná (PR)", "Minas Gerais (MG)", "Pernambuco (PE)", "Rio Grande do Sul (RS)" , "Santa Catarina (SC)")
+
+SalarioEstado <- dados %>% 
+    filter(Estado %in% EstadosEscolhidos) %>%
+  select(Estado, Genero, Salario) %>% 
+    group_by(Estado) %>% 
+  mutate(
+    medianS = median(Salario),
+    q25S = quantile(Salario, probs = .25),
+    q75S = quantile(Salario, probs = .75),
+    n = n(),
+    minimo = min(Salario),
+    maximo = max(Salario)
+  ) 
+  
+SalarioEstado
+
+SalarioEstadoSimp <-  SalarioEstado %>%
+  select(Estado, medianS, q25S,  q75S, n, minimo, maximo) %>% 
+    unique()
+
+SalarioEstadoSimp
+```
+
+```{r}
+Median1 <- 5000 # UI
+Median2 <- 5100 # redator
+Median3 <-5140  # UX
+Median4 <- 5392 # produto
+Median5 <- 5450 # pesquisa
+Median6 <- 7000 # ops 
+Median7 <-7250  # gp
+Median8 <- 8000 # estrategista
+
+
+GFSalarioEstado <- ggplot(SalarioEstado,
+       aes(x = reorder(Estado, medianS), y = Salario, fill = Estado, Color = Estado))  + 
+  scale_fill_manual(values = Cores) +
+  scale_color_manual(values = Cores) +
+  stat_slab(alpha = 0.5) +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_y_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000),
+                    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000")) +
+  scale_x_discrete ( name = NULL) +
+  annotate ("text", x = 1.25, y = Median1 , label = "R$ 5.000" , color = "black", size = 3.5) +
+  annotate ("text", x = 2.25, y = Median2, label = "R$ 5.100" , color = "black", size = 3.5)+
+  annotate ("text", x = 3.25, y = Median3, label = "R$ 5.140" , color = "black", size = 3.5)+
+  annotate ("text", x = 4.25, y = Median4 , label = "R$ 5.392" , color = "black", size = 3.5) +
+  annotate ("text", x = 5.25, y = Median5 , label = "R$ 5.450" , color = "black", size = 3.5) +
+  annotate ("text", x = 6.25, y = Median6, label = "R$ 7.000" , color = "black", size = 3.5)+
+  annotate ("text", x = 7.25, y = Median7, label = "R$ 7.250" , color = "black", size = 3.5)+
+  annotate ("text", x = 8.25, y = Median8 , label = "R$ 8.000" , color = "black", size = 3.5) +
+   coord_flip() +
+  labs(title = "Distribuição de salários",
+       subtitle = "Por estado") +
+  geom_segment(aes(y = minimo, 
+              yend = maximo,
+              x = Estado,
+              xend = Estado,
+              color = Estado),
+              size = .5) +
+  geom_point(aes(x = Estado, y = Salario, color = Estado), 
+             pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  geom_point(aes(x = Estado, y = medianS), 
+               color = "black", 
+               shape = 18, 
+               size = 3) +
+  annotate ("text", x = 8.2 , y = 33500, label =  "n = 911", color = Cores[8], size = 3.5) +
+  annotate ("text", x = 7.2 , y = 22500, label =  "n = 42", color = Cores[1], size = 3.5) +
+  annotate ("text", x = 6.2 , y = 28500, label =  "n = 140", color = Cores[5], size = 3.5) +
+  annotate ("text", x = 5.2 , y = 16000, label =  "n = 56", color = Cores[4], size = 3.5)+
+  annotate ("text", x = 4.2 , y = 17000, label =  "n = 104", color = Cores[2], size = 3.5) +
+  annotate ("text", x = 3.2 , y = 20000, label =  "n = 89", color = Cores[3], size = 3.5) +
+  annotate ("text", x = 2.2 , y = 22500, label =  "n = 130", color = Cores[7], size = 3.5) +
+  annotate ("text", x = 1.2 , y = 18500, label =  "n = 115", color = Cores[6], size = 3.5)
+
+finalise_plot(plot_name = GFSalarioEstado,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/GFSalarioEstado.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
+```
+
+```{r}
+
+SalarioIdade <- dados %>% 
+  select(FaixaIdade, Genero, Salario) %>% 
+    group_by(FaixaIdade) %>% 
+  mutate(
+    medianS = median(Salario),
+    q25S = quantile(Salario, probs = .25),
+    q75S = quantile(Salario, probs = .75),
+    n = n(),
+    minimo = min(Salario),
+    maximo = max(Salario)
+  ) 
+  
+SalarioIdade
+
+```
+
+```{r}
+Median1 <- 3600 # 18
+Median2 <- 5500 # 
+Median3 <- 8000  # 
+Median4 <- 10000 # 
+Median5 <- 10000 # 
+Median6 <- 9300 # 48+ 
+
+
+
+GFSalarioEstado <- ggplot(SalarioIdade,
+       aes(x = FaixaIdade, y = Salario, fill = FaixaIdade, Color = FaixaIdade))  + 
+  scale_fill_manual(values = Cores) +
+  scale_color_manual(values = Cores) +
+  stat_slab(alpha = 0.5) +
+  bbc_style() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 11),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(color = "grey30", 
+                                  margin = margin(t = 7), 
+                                  size = 14),
+        plot.title = element_text(size = 21), 
+        panel.grid.major.x = element_line(colour = "grey90", size = 0.5), 
+        panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
+  scale_y_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000),
+                    labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000")) +
+  scale_x_discrete ( name = NULL) +
+  coord_flip() +
+  labs(title = "Distribuição de salários",
+       subtitle = "Por idade") +
+  geom_segment(aes(y = minimo, 
+              yend = maximo,
+              x = FaixaIdade,
+              xend = FaixaIdade,
+              color = FaixaIdade),
+              size = .5) +
+  geom_point(aes(x = FaixaIdade, y = Salario, color = FaixaIdade), 
+             pch = "|", size = 2, position = position_nudge(x = -0.06)) +
+  geom_point(aes(x = FaixaIdade, y = medianS), 
+               color = "black", 
+               shape = 18, 
+               size = 3) +
+  annotate ("text", x = 1.25, y = Median1 , label = "R$ 3.600" , color = "black", size = 3.5) +
+  annotate ("text", x = 2.25, y = Median2, label = "R$ 5.500" , color = "black", size = 3.5)+
+  annotate ("text", x = 3.25, y = Median3, label = "R$ 8.040" , color = "black", size = 3.5)+
+  annotate ("text", x = 4.25, y = Median4 , label = "R$ 10.000" , color = "black", size = 3.5) +
+  annotate ("text", x = 5.25, y = Median5 , label = "R$ 10.000" , color = "black", size = 3.5) +
+  annotate ("text", x = 6.25, y = Median6, label = "R$ 9.300" , color = "black", size = 3.5)+
+  annotate ("text", x = 6.2 , y = 22500, label =  "n = 17", color = Cores[6], size = 3.5) +
+  annotate ("text", x = 5.2 , y = 32500, label =  "n = 81", color = Cores[5], size = 3.5)+
+  annotate ("text", x = 4.2 , y = 28000, label =  "n = 249", color = Cores[4], size = 3.5) +
+  annotate ("text", x = 3.2 , y = 32500, label =  "n = 582", color = Cores[3], size = 3.5) +
+  annotate ("text", x = 2.2 , y = 22000, label =  "n = 627", color = Cores[2], size = 3.5) +
+  annotate ("text", x = 1.2 , y = 18500, label =  "n = 115", color = Cores[1], size = 3.5)
+
+finalise_plot(plot_name = GFSalarioEstado,
+source = "Fonte: Panorama UX",
+save_filepath = "graficos/GFSalarioEstado.png",
+width_pixels = 640,
+height_pixels = 550, 
+logo_image_path = "logo.png")
 ```
