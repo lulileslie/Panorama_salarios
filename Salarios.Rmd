@@ -25,19 +25,19 @@ library(skimr)
 ```{r dados, include=FALSE}
 dados = read_csv(here("Dados/PanoramaUX2021.csv"),
                  col_types = cols(
-  DesafioTexto = col_character(),
+  DesafioTexto = col_skip(),
   ImpactoPandemia = col_character(),
-  ManterTexto = col_character(),
+  ManterTexto = col_skip(),
   OndeTrabalhaSimples = col_factor(),
-  TimeDivisao = col_character(),
-  ContratoOrig = col_character(),
+  TimeDivisao = col_skip(),
+  ContratoOrig = col_skip(),
   ContratoSimples = col_character(),
   Salario = col_double(),
   salario2019 = col_double(),
   `Escolaridade?` = col_factor(),
   AnosExperienciaUX = col_factor(c("Menos de 1", "De 1 a 3", "De 4 a 5", "De 6 a 10", "De 11 a 15", "Mais que 15"), ordered = TRUE),
   Nivel = col_factor(c("Trabalho de forma independente ou como freelancer", "Pesquisador acadêmico", "Outro (especifique)","Estagiário(a)", "Trainee", "Júnior", "Pleno", "Sênior", "Líder técnico ou especialista",  "Coordenador/Lead", "Gerente/Head", "Diretor(a)", "C-level" ), ordered = TRUE),
-  Lideranca = col_character(),
+  Lideranca = col_factor(),
   Funcao = col_character(),
   Genero = col_character(),
   LGBTQ = col_character(),
@@ -56,7 +56,8 @@ dados <- dados %>%
   filter(Estado != "Não moro no Brasil") %>% 
   filter(ContratoSimples != "Não estou trabalhando no momento")  %>%
   filter(!is.na(Salario)) %>%
-  filter(Salario > 0)
+  filter(Salario > 0) 
+ 
 ```
 
 ```{r}
@@ -73,7 +74,6 @@ Cores4 <- c("#ffd700","#E05186","#9d02d7","#0000ff")
 dados %>% 
   skim()
 ```
-
 
 
 
@@ -106,8 +106,6 @@ comparaAnos <- dados %>%
     Ano_num = ifelse(ano == 2020, 2, ifelse(ano==2019, 1, NA))) %>% 
   ungroup() 
     
-  
-
 ```
 
 Versão 1 - antiga
@@ -293,7 +291,6 @@ logo_image_path = "logo.png")
 SalarioGenTeste <- dados %>% 
   group_by(Genero) %>%
   filter(Genero != "Outro ou não binário", Genero != "Prefiro não dizer") %>% 
-  filter(!is.na(Salario)) %>% 
   mutate(
     median = median(Salario),
     q25 = quantile(Salario, probs = .25),
@@ -390,35 +387,55 @@ logo_image_path = "logo.png")
 LGBT
 
 ```{r}
-SalarioLGBT <- SalarioGenTeste %>% 
-  filter(Salario > 0) %>% 
-  group_by(LGBTQ) %>% 
-  mutate(
-    medianS = median(Salario),
+SalarioLGBT <- dados %>% 
+  mutate(medianS = median(Salario),
     q25S = quantile(Salario, probs = .25),
     q75S = quantile(Salario, probs = .75),
     n = n(),
     minimo = min(Salario),
     maximo = max(Salario)
   ) %>% 
-  ungroup() %>% 
-  mutate(LGBT_num = as.numeric(fct_rev(LGBTQ))) 
+  mutate(cat_num = as.numeric(fct_rev(LGBTQ))) 
 
 SalarioLGBT
 
-MedianLGBTQ <- 6400
+resumoSalarioLGBT <- dados %>% 
+  group_by(LGBTQ) %>%
+  summarise(median = median(Salario),
+    q25 = quantile(Salario, probs = .25),
+    q75 = quantile(Salario, probs = .75),
+    n = n(),
+    minimo = min(Salario),
+    maximo = max(Salario)) %>% 
+  mutate(cat_num = as.numeric(fct_rev(LGBTQ)))
+  
+resumoSalarioLGBT
+
+MedianLGBTQ <- 6325
 MedianNao <- 7300
-Q25lg <- 4022
-Q25Nl <- 4643
-Q75lg <- 8800
-Q75Nl <- 10000
+
 
 ```
+```{r}
+ ggplot()+
+geom_rect(data = resumoSalarioLGBT, 
+             mapping = aes(xmin = cat_num -0.12, xmax = cat_num - 0.02, ymin = q25, ymax = median), 
+            fill = "grey89", alpha = 0.8, linetype = 0)+
+   geom_rect(data = resumoSalarioLGBT, 
+             mapping = aes(xmin = cat_num -0.12, xmax = cat_num -0.02, ymin = median, ymax = q75), 
+            fill = "grey79", alpha = 0.8, linetype = 0) +
+    bbc_style() +
+    coord_flip() 
+
+  
+```
+
+
 
 ```{r}
 
-SalariosLGBT <- ggplot(SalarioLGBT, aes(x = LGBT_num, y = Salario, fill = LGBTQ, color = LGBTQ)) + 
-  stat_slab(alpha = 0.5) +
+SalariosLGBT <- ggplot(data = SalarioLGBT, aes(x = cat_num, y = Salario, fill = LGBTQ, color = LGBTQ)) + 
+  stat_slab(data = SalarioLGBT, aes(alpha = 0.5)) +
   scale_fill_manual(values = Cores2) +
   scale_color_manual(values = Cores2) +
   bbc_style() +
@@ -433,47 +450,33 @@ SalariosLGBT <- ggplot(SalarioLGBT, aes(x = LGBT_num, y = Salario, fill = LGBTQ,
         panel.grid.minor.x = element_line(colour = "grey90", size = 0.1)) +
   scale_y_continuous(name = "Salário em R$", breaks = c(0, 5000, 10000, 15000, 20000, 25000, 30000),
                     labels = c("0", "5.000","10.000","15.000", "20.000", "25.000", "30.000")) +
-  scale_x_continuous (name = NULL, breaks = c(1, 2), labels = c("Não LGBTQ+", "LGBTQ+")) +
-  annotate ("text", x = 2.1, y = MedianLGBTQ, label = "R$ 6.400" , color = "black")+
-  annotate ("text", x = 1.1, y = MedianNao , label = "R$ 7.300" , color = "black") +
+  scale_x_continuous (name = NULL, breaks = c(1, 2), labels = c("LGBTQ+","Não LGBTQ+")) +
   coord_flip() +
-  labs(title = "Distribuição de salários - LGBTQ+") +
-  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
-                ymin = Q25Nl, ymax = MedianNao), 
-            fill = "grey89", alpha = 0.8, linetype = 0) +
-  geom_rect(aes(xmin = 0.88, xmax = 0.98, 
-                ymin = Q75Nl, ymax = MedianNao), 
-            fill = "grey79", alpha = 0.8, linetype = 0) +
-    geom_rect(aes(xmin = 1.88, xmax = 1.98, 
-                ymin = Q25lg, ymax = MedianLGBTQ), 
-            fill = "grey89", alpha = 0.8, linetype = 0) +
-  geom_rect(aes(xmin = 1.88, xmax = 1.98, 
-                ymin = Q75lg, ymax = MedianLGBTQ), 
-            fill = "grey79", alpha = 0.8, linetype = 0) +
-  geom_segment(aes(y = minimo, 
+  labs(title = "Distribuição de salários LGBTQ+") +
+  geom_segment(data = resumoSalarioLGBT, mapping =  aes(y = minimo, 
               yend = maximo,
-              x = LGBT_num,
-              xend = LGBT_num,
+              x = cat_num,
+              xend = cat_num,
               color = LGBTQ),
               size = .5) +
-  geom_point(aes(x = LGBT_num, y = Salario), pch = "|", size = 2, position = position_nudge(x = -0.06)) +
-  geom_point(aes(x = 1, y = 7300), 
-               color = "black", 
-               shape = 18, 
-               size = 4) +
-  geom_point(aes(x = 2, y = 6400), 
-               color = "black", 
-               shape = 18, 
-               size = 4)+
+  geom_point(data = SalarioLGBT, aes(x = cat_num, y = Salario), pch = "|", size = 2, position =  position_nudge(x = -0.06)) +
+  geom_point(data = resumoSalarioLGBT, aes(x = cat_num, y = median), 
+                color = "black", 
+                shape = 18, 
+                size = 4) +
+  annotate ("text", x = 1.1, y = MedianLGBTQ, label = "R$ 6.400" , color = "black")+
+  annotate ("text", x = 2.1, y = MedianNao , label = "R$ 7.300" , color = "black") +
   annotate ("text", x = 1.1 , y = 28500, label =  "n = 395", color = Cores2[2]) +
-  annotate ("text", x = 2.1 , y = 33500, label =  "n = 1250", color = Cores2[1])
+  annotate ("text", x = 2.1 , y = 33500, label =  "n = 1250", color = Cores2[1]) 
+
+
 
   finalise_plot(plot_name = SalariosLGBT,
-source = "Fonte: Panorama UX",
-save_filepath = "graficos/SalariosLGBT.png",
-width_pixels = 640,
-height_pixels = 550, 
-logo_image_path = "logo.png")
+  source = "Fonte: Panorama UX",
+  save_filepath = "graficos/SalariosLGBT.png",
+  width_pixels = 640,
+  height_pixels = 550,
+  logo_image_path = "logo.png")
 
 
 ```
@@ -675,18 +678,37 @@ SalarioFuncao <- dados %>%
     filter(Funcao != "CX / Operações / Suporte") %>%
     group_by(Funcao) %>% 
   mutate(
-    medianS = median(Salario),
-    q25S = quantile(Salario, probs = .25),
-    q75S = quantile(Salario, probs = .75),
+    median = median(Salario),
+    q25 = quantile(Salario, probs = .25),
+    q75 = quantile(Salario, probs = .75),
     n = n(),
     minimo = min(Salario),
     maximo = max(Salario)
   ) %>% 
   ungroup() %>% 
-  mutate(Funcao_num = as.numeric(fct_rev(Funcao))) 
+  mutate(cat_num = as.numeric(fct_rev(Funcao)))
 
+SalarioFuncaoRes <- dados %>% 
+  filter(Funcao != "Designer de interação") %>%
+    filter(Funcao != "Outro (especifique)") %>%
+    filter(Funcao != "Especialista em Usabilidade") %>%
+    filter(Funcao != "Arquiteto de Informação") %>%
+    filter(Funcao != "Analista de métricas / BI / Cientista de dados") %>%
+    filter(Funcao != "Operações em pesquisa (ResearchOps)") %>%
+    filter(Funcao != "Freelancer") %>%
+    filter(Funcao != "CX / Operações / Suporte") %>%
+    group_by(Funcao) %>%
+  summarise(median = median(Salario),
+      q25 = quantile(Salario, probs = .25),
+      q75 = quantile(Salario, probs = .75),
+      n = n(),
+      minimo = min(Salario),
+      maximo = max(Salario)) %>% 
+  mutate(cat_num = as.numeric(fct_rev(Funcao)))
   
 SalarioFuncao
+
+SalarioFuncaoRes
 ```
 ```{r}
 Median1 <- 4000 # UI
@@ -700,7 +722,7 @@ Median8 <- 11000 # estrategista
 
 
 GFSalarioFuncao <- ggplot(SalarioFuncao,
-       aes(x = reorder(Funcao, medianS), y = Salario, fill = Funcao, Color = Funcao))  + 
+       aes(x = reorder(Funcao, median), y = Salario, fill = Funcao, Color = Funcao))  + 
   scale_fill_manual(values = Cores) +
   scale_color_manual(values = Cores) +
   stat_slab(alpha = 0.5) +
@@ -726,17 +748,19 @@ GFSalarioFuncao <- ggplot(SalarioFuncao,
   annotate ("text", x = 7.25, y = Median7, label = "R$ 10.000" , color = "black", size = 3.5)+
   annotate ("text", x = 8.25, y = Median8 , label = "R$ 11.000" , color = "black", size = 3.5) +
   coord_flip() +
-  labs(title = "Distribuição de salários",
-       subtitle = "Por função") +
+  labs(title = "Distribuição de salários por função") +
   geom_segment(aes(y = minimo, 
               yend = maximo,
               x = Funcao,
               xend = Funcao,
               color = Funcao),
               size = .5) +
+  geom_rect(aes(xmin = cat_num - 0.2, xmax = cat_num, 
+                ymin = q25, ymax = median), 
+             fill = "grey89", alpha = 0.8, linetype = 0) +
   geom_point(aes(x = Funcao, y = Salario, color = Funcao), 
              pch = "|", size = 2, position = position_nudge(x = -0.06)) +
-  geom_point(aes(x = Funcao, y = medianS), 
+  geom_point(aes(x = Funcao, y = median), 
                color = "black", 
                shape = 18, 
                size = 3) +
@@ -782,14 +806,14 @@ SalarioEstadoSimp
 ```
 
 ```{r}
-Median1 <- 5000 # UI
-Median2 <- 5100 # redator
-Median3 <-5140  # UX
-Median4 <- 5392 # produto
-Median5 <- 5450 # pesquisa
-Median6 <- 7000 # ops 
-Median7 <-7250  # gp
-Median8 <- 8000 # estrategista
+Median1 <- 5000 # rs
+Median2 <- 5100 # sc
+Median3 <-5140  # pr
+Median4 <- 5392 # mg
+Median5 <- 5450 # pe
+Median6 <- 7000 # RJ 
+Median7 <-7250  # DF
+Median8 <- 8000 # SP
 
 
 GFSalarioEstado <- ggplot(SalarioEstado,
@@ -819,8 +843,7 @@ GFSalarioEstado <- ggplot(SalarioEstado,
   annotate ("text", x = 7.25, y = Median7, label = "R$ 7.250" , color = "black", size = 3.5)+
   annotate ("text", x = 8.25, y = Median8 , label = "R$ 8.000" , color = "black", size = 3.5) +
    coord_flip() +
-  labs(title = "Distribuição de salários",
-       subtitle = "Por estado") +
+  labs(title = "Distribuição de salários por estado") +
   geom_segment(aes(y = minimo, 
               yend = maximo,
               x = Estado,
@@ -878,7 +901,7 @@ Median6 <- 9300 # 48+
 
 
 
-GFSalarioEstado <- ggplot(SalarioIdade,
+GFSalarioIdade <- ggplot(SalarioIdade,
        aes(x = FaixaIdade, y = Salario, fill = FaixaIdade, Color = FaixaIdade))  + 
   scale_fill_manual(values = Cores) +
   scale_color_manual(values = Cores) +
@@ -924,9 +947,9 @@ GFSalarioEstado <- ggplot(SalarioIdade,
   annotate ("text", x = 2.2 , y = 22000, label =  "n = 627", color = Cores[2], size = 3.5) +
   annotate ("text", x = 1.2 , y = 18500, label =  "n = 115", color = Cores[1], size = 3.5)
 
-finalise_plot(plot_name = GFSalarioEstado,
+finalise_plot(plot_name = GFSalarioIdade,
 source = "Fonte: Panorama UX",
-save_filepath = "graficos/GFSalarioEstado.png",
+save_filepath = "graficos/GFSalarioIdade.png",
 width_pixels = 640,
 height_pixels = 550, 
 logo_image_path = "logo.png")

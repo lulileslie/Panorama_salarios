@@ -52,12 +52,14 @@ slopeAnos <- dados %>%
   select(Salario, salario2019) %>% 
    filter(!is.na(Salario), !is.na(salario2019)) %>% 
    mutate(diferenca = Salario - salario2019) %>% 
-   filter(Salario > 0, salario2019 >0) %>% 
+   filter(Salario > 0, salario2019 > 0) %>% 
   rename("Ano_2020" = Salario,
-         "Ano_2019" = salario2019)  
+         "Ano_2019" = salario2019) 
 
-  graficoslope <- ggplot(slopeAnos) +
-    geom_segment(slopeAnos, x = 2019,xend = 2020 , y= Ano_2019 ,  yend = Ano_2020 , color = "gray70")
+Anos <- c(2019, 2020)
+
+  graficoslope <- ggplot(slopeAnos, aes(x= Anos, y = Ano_2020)) +
+    geom_segment(x = 2019, xend = 2020 , y = Ano_2019 ,  yend = Ano_2020 , color = "gray70")
 
   
 ```
